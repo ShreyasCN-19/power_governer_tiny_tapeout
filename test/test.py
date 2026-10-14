@@ -35,14 +35,14 @@ async def test_pwrgovx(dut):
     assert ((int(dut.uo_out.value) >> 6) & 0b11) == 0, (
         "Expected low-power mode after reset"
     )
-# Request thermal throttling: temperature code 6, enable request = 1.
-await FallingEdge(dut.clk)
-dut.ui_in.value = 0b00011001
+    # Request thermal throttling: temperature code 6, enable request = 1.
+    await FallingEdge(dut.clk)
+    dut.ui_in.value = 0b00011001
 
-# Allow the gate-level design several cycles to respond.
-for _ in range(3):
-    await RisingEdge(dut.clk)
-    await Timer(1, unit="ns")
+   # Allow the gate-level design several cycles to respond.
+   for _ in range(3):
+        await RisingEdge(dut.clk)
+        await Timer(1, unit="ns")
 
     mode = (int(dut.uo_out.value) >> 6) & 0b11
     throttle_active = (int(dut.uo_out.value) >> 1) & 1
