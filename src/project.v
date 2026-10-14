@@ -265,6 +265,7 @@ module workload_classifier (
 endmodule
 
 
+
 module pwrgov_fsm (
     input wire clk,
     input wire rst,
@@ -277,7 +278,7 @@ module pwrgov_fsm (
 );
 
     localparam MODE_LOW_POWER = 2'b00;
-    localparam MODE_NORMAL = 2'b01;
+    localparam MODE_NORMAL    = 2'b01;
     localparam MODE_THROTTLED = 2'b10;
 
     localparam WORKLOAD_LOW = 2'b00;
@@ -286,33 +287,31 @@ module pwrgov_fsm (
     reg thermal_latched;
 
     always @(posedge clk) begin
-        if (rst)
-            thermal_latched <= 1'b0;
-        else if (!enable)
+        if (rst || !enable)
             thermal_latched <= 1'b0;
         else if (temp_code >= 3'd6)
             thermal_latched <= 1'b1;
         else if (temp_code <= 3'd4)
             thermal_latched <= 1'b0;
+        // At temperature 5, retain the previous state.
     end
 
     always @(*) begin
         mode = MODE_LOW_POWER;
         throttle_request = 1'b0;
 
-        if (!enable) begin
-            mode = MODE_LOW_POWER;
-        end
-        else if (thermal_latched) begin
-            mode = MODE_THROTTLED;
-            throttle_request = 1'b1;
-        end
-        else if ((workload_class == WORKLOAD_LOW) &&
-                 (workload_trend != TREND_RISING)) begin
-            mode = MODE_LOW_POWER;
-        end
-        else begin
-            mode = MODE_NORMAL;
+        if (enable) begin
+            if (thermal_latched) begin
+                mode = MODE_THROTTLED;
+                throttle_request = 1'b1;
+            end
+            else if ((workload_class == WORKLOAD_LOW) &&
+                     (workload_trend != TREND_RISING)) begin
+                mode = MODE_LOW_POWER;
+            end
+            else begin
+                mode = MODE_NORMAL;
+            end
         end
     end
 
