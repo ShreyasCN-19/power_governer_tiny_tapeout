@@ -41,8 +41,8 @@ async def test_pwrgovx(dut):
 
    # Allow the gate-level design several cycles to respond.
    for _ in range(3):
-        await RisingEdge(dut.clk)
-        await Timer(1, unit="ns")
+       await RisingEdge(dut.clk)
+       await Timer(1, unit="ns")
 
     mode = (int(dut.uo_out.value) >> 6) & 0b11
     throttle_active = (int(dut.uo_out.value) >> 1) & 1
