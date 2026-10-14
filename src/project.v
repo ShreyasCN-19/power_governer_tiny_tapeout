@@ -318,6 +318,7 @@ module pwrgov_fsm (
 endmodule
 
 
+
 module control_signal_generator (
     input wire rst,
     input wire enable,
@@ -329,49 +330,45 @@ module control_signal_generator (
 );
 
     localparam MODE_LOW_POWER = 2'b00;
-    localparam MODE_NORMAL = 2'b01;
+    localparam MODE_NORMAL    = 2'b01;
     localparam MODE_THROTTLED = 2'b10;
 
     always @(*) begin
-        perf_enable = 1'b0;
+        perf_enable    = 1'b0;
         throttle_active = 1'b0;
-        control_level = 2'b00;
+        control_level   = 2'b00;
 
         if (!rst && enable) begin
             case (mode)
                 MODE_LOW_POWER: begin
-                    perf_enable = 1'b0;
+                    perf_enable     = 1'b0;
                     throttle_active = 1'b0;
-                    control_level = 2'b00;
+                    control_level   = 2'b00;
                 end
 
                 MODE_NORMAL: begin
-                    perf_enable = 1'b1;
+                    perf_enable     = 1'b1;
                     throttle_active = 1'b0;
-                    control_level = 2'b11;
+                    control_level   = 2'b11;
                 end
 
                 MODE_THROTTLED: begin
-                    perf_enable = 1'b1;
+                    perf_enable     = 1'b1;
                     throttle_active = 1'b1;
-                    control_level = 2'b01;
+                    control_level   = 2'b01;
                 end
 
                 default: begin
-                    perf_enable = 1'b0;
+                    perf_enable     = 1'b0;
                     throttle_active = 1'b0;
-                    control_level = 2'b00;
+                    control_level   = 2'b00;
                 end
             endcase
-
-            if (throttle_request) begin
-                throttle_active = 1'b1;
-                control_level = 2'b01;
-            end
         end
     end
 
 endmodule
+
 
 
 module workload_predictor (
