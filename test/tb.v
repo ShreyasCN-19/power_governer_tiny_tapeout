@@ -45,4 +45,5 @@ module tb ();
 endmodule
 
 `default_nettype wire
-```
+```verilog
+   `default_nettype wire
