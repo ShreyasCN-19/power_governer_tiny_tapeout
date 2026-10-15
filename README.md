@@ -175,6 +175,13 @@ power_governer_tiny_tapeout/
 - The reported physical-design warnings should be reviewed before any fabrication submission.
 - Future work could include more extensive workload verification, additional temperature and activity scenarios, power estimation, and hardware-level validation.
 
+## Team Members
+
+- **Shreyas C N** — [GitHub](https://github.com/ShreyasCN-19)
+- **Thejas Gowda KR** — [GitHub](https://github.com/thejasgowda-05)
+- **Varun K B** — [GitHub](https://github.com/VarunKB06)
+- **Rahul A R** — [GitHub](https://github.com/rahular2005)
+  
 ## Acknowledgements
 
 Built using the Tiny Tapeout Verilog project template, the SKY130 process design kit, Cocotb, and the automated Tiny Tapeout physical-design workflow.
