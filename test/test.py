@@ -80,17 +80,22 @@ async def test_pwrgovx(dut):
         "Throttle output should remain asserted at temperature 5"
     )
 
+   
     # Temperature code 4: throttle must release
     await FallingEdge(dut.clk)
     dut.ui_in.value = 0b00010001
 
-    await RisingEdge(dut.clk)
-    await Timer(1, unit="ns")
+    # Give the gate-level sequential and combinational paths time to settle.
+    for _ in range(2):
+        await RisingEdge(dut.clk)
+        await Timer(1, unit="ns")
 
     throttle_active = (int(dut.uo_out.value) >> 1) & 1
+
     assert throttle_active == 0, (
-        "Throttle should release at temperature 4"
+        "Throttle should release at temperature code 4"
     )
+
 
     # Disable the enable request
     await FallingEdge(dut.clk)
