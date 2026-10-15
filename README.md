@@ -1,42 +1,183 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
+# PwrGov-X: Telemetry-Driven Power Governor IP
 
-# Tiny Tapeout Verilog Project Template
+A parameter-conscious digital power-governor IP implemented in Verilog-2001 for Tiny Tapeout using the SkyWater SKY130 ASIC design flow. PwrGov-X monitors activity and temperature inputs, classifies workload, tracks workload trends, and generates power-management control signals with thermal throttling and hysteresis.
 
-- [Read the documentation for project](docs/info.md)
+## Highlights
 
-## What is Tiny Tapeout?
+- Verilog-2001 RTL design using eight modules
+- Tiny Tapeout standard interface with `clk`, `rst_n`, `ena`, `ui_in`, `uo_out`, `uio_in`, `uio_out`, and `uio_oe`
+- Activity monitoring over a configurable cycle window
+- Workload classification into low, medium, and high categories
+- Workload-trend prediction
+- Finite-state-machine-based power-mode selection
+- Thermal throttling with hysteresis
+- Cocotb integration test and gate-level verification
+- Automated SKY130 physical-design flow using the Tiny Tapeout GitHub Actions workflow
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+## Motivation
 
-To learn more and get started, visit https://tinytapeout.com.
+Digital systems such as CPUs, system-on-chips, embedded processors, and AI accelerators must balance performance and power consumption. Continuously operating at maximum performance can waste energy when the workload is light, while elevated temperature may require performance throttling.
 
-## Set up your Verilog project
+PwrGov-X explores a lightweight hardware approach to this problem by using activity and temperature telemetry to select a suitable operating mode.
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+This project is an educational RTL and ASIC implementation exercise. It is not a replacement for a production power-management unit or a complete commercial dynamic-voltage-and-frequency-scaling controller.
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+## Architecture
 
-## Enable GitHub actions to build the results page
+The design is divided into eight RTL modules:
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+| Module | Responsibility |
+|---|---|
+| `tt_um_pwrgovx` | Top-level Tiny Tapeout wrapper and signal mapping |
+| `telemetry_monitor` | Tracks active, idle, and total cycle counts |
+| `window_controller` | Controls the telemetry measurement window |
+| `feature_extractor` | Produces an activity metric from telemetry counters |
+| `workload_classifier` | Classifies workload using the extracted activity metric |
+| `workload_predictor` | Tracks workload trends |
+| `pwrgov_fsm` | Selects the operating mode and manages thermal hysteresis |
+| `control_signal_generator` | Generates performance, throttle, and control-level outputs |
 
-## Resources
+### Functional flow
 
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
+```mermaid
+flowchart TD
+    A[Activity and temperature inputs] --> B[Telemetry Monitor]
+    B --> C[Window Controller]
+    B --> D[Feature Extractor]
+    C --> D
+    D --> E[Workload Classifier]
+    E --> F[Workload Predictor]
+    E --> G[Power Governor FSM]
+    F --> G
+    A --> G
+    G --> H[Control Signal Generator]
+    H --> I[Performance Enable]
+    H --> J[Thermal Throttle]
+    H --> K[Control Level]
+    G --> L[Operating Mode]
+```
 
-## What next?
+### Operating modes
 
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+| Mode | Encoding | Description |
+|---|---|---|
+| Low power | `2'b00` | Reduced-activity operating mode |
+| Normal | `2'b01` | Normal operating mode |
+| Throttled | `2'b10` | Thermal-protection mode |
+
+The FSM requests thermal throttling when the temperature code reaches 6 or higher. Once throttling is active, it remains active at temperature code 5 and releases at code 4 or lower. This hysteresis helps prevent rapid switching around the threshold.
+
+When the enable request is inactive, the design returns to its low-power mode.
+
+## Tiny Tapeout Interface
+
+The top-level module is `tt_um_pwrgovx`.
+
+### Inputs
+
+| Signal | Description |
+|---|---|
+| `clk` | Clock input |
+| `rst_n` | Active-low reset |
+| `ena` | Tiny Tapeout design enable |
+| `ui_in[0]` | Enable request |
+| `ui_in[1]` | Activity input |
+| `ui_in[4:2]` | Three-bit temperature code |
+| `ui_in[7:5]` | Reserved inputs |
+| `uio_in[7:0]` | Unused bidirectional input bus |
+
+The internal enable request is formed from `ena` and `ui_in[0]`.
+
+### Outputs
+
+| Signal | Description |
+|---|---|
+| `uo_out[0]` | Performance enable |
+| `uo_out[1]` | Throttle active |
+| `uo_out[3:2]` | Control level |
+| `uo_out[5:4]` | Workload class |
+| `uo_out[7:6]` | Operating mode |
+| `uio_out[7:0]` | Held at zero |
+| `uio_oe[7:0]` | Held at zero; bidirectional pins disabled |
+
+### Workload classification
+
+The implementation uses the active-cycle count within its measurement window to distinguish workload levels:
+
+| Active samples | Class encoding | Classification |
+|---|---|---|
+| 0–3 | `2'b00` | Low |
+| 4–9 | `2'b01` | Medium |
+| 10–16 | `2'b10` | High |
+
+The workload trend is represented internally as stable (`00`), rising (`01`), or falling (`10`).
+
+## Verification
+
+The project includes a Cocotb integration test in `test/test.py` and the Tiny Tapeout test harness in `test/tb.v`.
+
+The integration test checks:
+
+- Reset behavior and low-power mode
+- Thermal throttle entry at temperature code 6
+- Thermal hysteresis at temperature code 5
+- Throttle release at temperature code 4
+- Safe outputs when the enable request is disabled
+- Unused bidirectional outputs and output enables remaining low
+
+The successful GitHub Actions GDS workflow reports the following job results:
+
+| Check | Result |
+|---|---|
+| GDS generation | Passed |
+| Tiny Tapeout precheck | Passed |
+| Gate-level test (`gl_test`) | Passed |
+| Viewer deployment | Passed |
+
+These results demonstrate that the design completed the configured automated flow and passed the reported checks. They do not, by themselves, establish that the design has been accepted for a shuttle or fabricated.
+
+## Physical Design
+
+The successful GDS workflow reported these routing statistics:
+
+| Metric | Recorded result |
+|---|---:|
+| Routing utilization | 8.374% |
+| Reported wire length | 2,569 µm |
+| GDS generation | Successful |
+
+The workflow also reported 449 linter warnings. These warnings should be inspected and understood before a fabrication submission; a successful workflow does not mean that every warning is irrelevant.
+
+The reported values are EDA flow results, not measurements from fabricated silicon. For reproducibility, retain the successful workflow URL, commit identifier, GDS artifacts, and accompanying reports.
+
+## Repository Structure
+
+```text
+power_governer_tiny_tapeout/
+├── .github/workflows/   # Automated test and GDS workflows
+├── docs/
+│   └── info.md          # Tiny Tapeout project documentation
+├── src/
+│   └── project.v        # Top wrapper and PwrGov-X RTL modules
+├── test/
+│   ├── Makefile         # Cocotb simulation configuration
+│   ├── tb.v             # Tiny Tapeout test harness
+│   └── test.py          # Cocotb integration test
+├── info.yaml            # Project metadata and pin descriptions
+└── README.md            # Project overview and technical documentation
+```
+
+## Limitations and Future Work
+
+- The current activity and temperature signals are simplified telemetry inputs for demonstrating power-governor behavior.
+- Workload classification and trend prediction use lightweight digital logic rather than a complex workload prediction algorithm.
+- The current design does not implement actual voltage scaling, clock-frequency scaling, or a physical power-delivery controller.
+- The reported physical-design warnings should be reviewed before any fabrication submission.
+- Future work could include more extensive workload verification, additional temperature and activity scenarios, power estimation, and hardware-level validation.
+
+## Acknowledgements
+
+Built using the Tiny Tapeout Verilog project template, the SKY130 process design kit, Cocotb, and the automated Tiny Tapeout physical-design workflow.
+
+- Tiny Tapeout: https://tinytapeout.com/
+- Repository: https://github.com/ShreyasCN-19/power_governer_tiny_tapeout
