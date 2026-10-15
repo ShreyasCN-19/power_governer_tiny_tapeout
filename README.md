@@ -6,7 +6,7 @@ A parameter-conscious digital power-governor IP implemented in Verilog-2001 for 
 
 - Verilog-2001 RTL design using eight modules
 - Tiny Tapeout standard interface with `clk`, `rst_n`, `ena`, `ui_in`, `uo_out`, `uio_in`, `uio_out`, and `uio_oe`
-- Activity monitoring over a configurable cycle window
+- Activity monitoring over a fixed 16-cycle window
 - Workload classification into low, medium, and high categories
 - Workload-trend prediction
 - Finite-state-machine-based power-mode selection
