@@ -5,7 +5,7 @@ project:
   discord: ""
   description: "Telemetry-driven power governor with workload classification, trend prediction, and thermal throttling."
   language: "Verilog"
-  clock_hz: 10000000
+  clock_hz: 50000000
 
   tiles: "1x1"
   top_module: "tt_um_pwrgovx"
